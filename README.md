@@ -10,4 +10,4 @@ This repository contains my work for the "Practical Machine Learning" course pro
 
 * project.Rmd: a RMarkdown file of my analyses.
 
-* project.html: a html file of my analyses (output from project.Rmd).
+* [project.html](https://ailchau.github.io/Coursera-Practical_Machine_Learning_Project/project.html): a html file of my analyses (output from project.Rmd).
