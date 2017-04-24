@@ -19,7 +19,7 @@ library(rpart.plot)
 
 ### Synopsis
 
-In this project, I examined data collected from 6 participants who performed 5 different sets of barbell lifts. Only 1 of these types was a correct barbell lift (Class A). The other 4 types involved common mistakes: throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D), and throwing the hips to the front (Class E). Accelerometers attached on the belt, forearm, arm, and dumbell were used to measure each barbell lift. The goal of this project was to **predict the manner (i.e., Class) in which participants did the exercise**. I attempted to solve this problem by building 3 type of classification models (i.e., classification tree, gradient boosting, and random forest) and assessing their predictive accuracy on an out of sample data set. Lastly, the best performing model was selected and applied to the test data set.
+In this project, I examined data collected from 6 participants who performed 5 different types of barbell lifts. Only 1 of these types was a correct barbell lift (Class A). The other 4 types involved common mistakes: throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D), and throwing the hips to the front (Class E). Accelerometers attached on the belt, forearm, arm, and dumbell were used to measure each barbell lift. The goal of this project was to **predict the manner (i.e., Class) in which participants did the exercise**. I attempted to solve this problem by building 3 different classification models (i.e., classification tree, gradient boosting, and random forest) and assessing their predictive accuracy on an out-of-sample data set. Lastly, the best performing model was selected and applied to the test data set.
 
 The data analyzed in this project was part of the Weight Lifting Exercise Data Set:
 
@@ -36,7 +36,7 @@ test <- read.csv("./pml-testing.csv")
 
 The train data set consisted of `r dim(train)[1]` observations and `r dim(train)[2]` variables. The test data set was only used for final evaluation purposes.
 
-The train data set was divided into a training (75%) and validation (25%) data sets. The training data set was used to train each of the 3 models, and validation data set was used to assess the out of sample predictive accuracy of each model.
+The train data set was divided into a training (75%) and validation (25%) data sets. The training data set was used to train each of the 3 models, and validation data set was used to assess the out-of-sample predictive accuracy of each model.
 
 ```{r split data}
 set.seed(123)
@@ -70,10 +70,10 @@ treePredVal <- predict(treeModel, newdata = validation, type = "class")
 rpart.plot(treeModel)
 ```
 
-The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(treePredVal, validation$classe)))/nrow(validation), 4) * 100`%**. Although this out of sample accuracy is pretty high, I might be able to still improve with other models. Classification trees are generally known for their easier interpretability, while other models, such as gradient boosting and random forest, are known for their better predictive accuracy.
+The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(treePredVal, validation$classe)))/nrow(validation), 4) * 100`%**. Although this out-of-sample accuracy is pretty high, I might be able to still improve with other models. Classification trees are generally known for their easier interpretability, while other models, such as gradient boosting and random forest, are known for their better predictive accuracy.
 
 
-### Predicting with gradient boosting
+### Predicting using gradient boosting
 
 Next, I built a gradient boosting model. I also used cross-validation method with 5 folds.
 
@@ -88,7 +88,7 @@ GBMPredVal <- predict(GBMModel, newdata = validation)
 
 The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(GBMPredVal, validation$classe)))/nrow(validation), 4) * 100`%**. 
 
-### Predicting with random forest
+### Predicting using random forest
 
 Lastly, I built a random forest model. Similarly, I also used cross-validation method with 5 folds.
 
@@ -97,7 +97,7 @@ RFModel <- train(classe ~ ., data = training_complete[,8:60], method = "rf",
                  trControl = trainControl(method = "cv", number = 5), verbose = FALSE)
 print(RFModel)
 
-# predict validation values
+# predict validation class
 RFPredVal <- predict(RFModel, newdata = validation)
 confusionMatrix(RFPredVal, validation$classe)
 ```
@@ -112,7 +112,7 @@ plot(varImp(RFModel, scale = TRUE), top = 20)
 
 ### Conclusion
 
-Since the random forest model was found to have the highest out of sample predictive accuracy over the classification tree and gradient boosting model, it was used to predict the Class of each observation in the test data set.
+Since the random forest model was found to have the highest out-of-sample predictive accuracy over the classification tree and gradient boosting model, it was used to predict the Class of each observation in the test data set.
 
 ```{r predict test, include = FALSE}
 # predict on test values
