@@ -1,0 +1,120 @@
+---
+title: "Practical Machine Learning: Course Project"
+author: "A. Chau"
+output: html_document
+---
+
+Date: `r Sys.Date()`
+
+```{r setup, include = FALSE}
+setwd("~/Data Science/MOOC/DataScienceCoursera/08_PracticalMachineLearning/Project")
+library(caret)
+library(gbm)
+library(randomForest)
+library(rpart)
+library(ggplot2)
+library(rpart.plot)
+#library(corrplot)
+```
+
+### Synopsis
+
+In this project, I examined data collected from 6 participants who performed 5 different sets of barbell lifts. Only 1 of these types was a correct barbell lift (Class A). The other 4 types involved common mistakes: throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D), and throwing the hips to the front (Class E). Accelerometers attached on the belt, forearm, arm, and dumbell were used to measure each barbell lift. The goal of this project was to **predict the manner (i.e., Class) in which participants did the exercise**. I attempted to solve this problem by building 3 type of classification models (i.e., classification tree, gradient boosting, and random forest) and assessing their predictive accuracy on an out of sample data set. Lastly, the best performing model was selected and applied to the test data set.
+
+The data analyzed in this project was part of the Weight Lifting Exercise Data Set:
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. [Qualitative Activity Recognition of Weight Lifting Exercises](http://groupware.les.inf.puc-rio.br/work.jsf?p1=11201). Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13). Stuttgart, Germany: ACM SIGCHI, 2013.
+
+### Loading and subsetting the data
+
+The train and test data sets were loaded. 
+
+```{r read data}
+train <- read.csv("./pml-training.csv", na.strings = c("", "NA", "#DIV/0!"))
+test <- read.csv("./pml-testing.csv")
+```
+
+The train data set consisted of `r dim(train)[1]` observations and `r dim(train)[2]` variables. The test data set was only used for final evaluation purposes.
+
+The train data set was divided into a training (75%) and validation (25%) data sets. The training data set was used to train each of the 3 models, and validation data set was used to assess the out of sample predictive accuracy of each model.
+
+```{r split data}
+set.seed(123)
+inTrain <- createDataPartition(y = train$classe, p = 0.75, list = FALSE)
+training <- train[inTrain, ]
+validation <- train[-inTrain, ]
+```
+
+### Cleaning the data
+
+After examining the data, I noticed that there were summary variables (e.g., kurtosis, skewness, average, standard deviation) that had many NA's (e.g., `r round(sum(is.na(training$skewness_pitch_arm))/nrow(training), 2) * 100`%) and corresponded with the *new_window* and *num_window* variables. However, not every level of *num_window* had summary statistics and the number of observations varied greatly for each level. This suggested that I may not have had the complete data set and calculating summary statistics for each level *num_window* may not be appropriate. Thus, I removed variables with more than 50% NA's from the data set.
+
+```{r remove na}
+na_count <- sapply(training, function(y) sum(length(which(is.na(y)))))
+training_complete <- training[, na_count < (nrow(training) * 0.5)]
+```
+
+### Predicting using classification trees 
+
+First, I built an entire classification tree, and then pruned the tree based on the recommdation to use the largest cp (complexity parameter) value associated with the smallest tree that is within 1 standard deviation of the tree with the smallest error. The resulting tree is displayed below.
+
+```{r tree}
+# pruned classification tree
+treeModel <- rpart(classe ~ ., data = training_complete[,8:60], method = "class", 
+                   control = rpart.control(xval = 10, cp = 2.4e-04))
+
+# predict validation class
+treePredVal <- predict(treeModel, newdata = validation, type = "class")
+
+# plot tree
+rpart.plot(treeModel)
+```
+
+The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(treePredVal, validation$classe)))/nrow(validation), 4) * 100`%**. Although this out of sample accuracy is pretty high, I might be able to still improve with other models. Classification trees are generally known for their easier interpretability, while other models, such as gradient boosting and random forest, are known for their better predictive accuracy.
+
+
+### Predicting with gradient boosting
+
+Next, I built a gradient boosting model. I also used cross-validation method with 5 folds.
+
+```{r gbm}
+GBMModel <- train(classe ~ ., data = training_complete[,8:60], method = "gbm", 
+                  trControl = trainControl(method = "cv", number = 5), verbose = FALSE)
+print(GBMModel$finalModel)
+
+# predict validation class
+GBMPredVal <- predict(GBMModel, newdata = validation)
+```
+
+The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(GBMPredVal, validation$classe)))/nrow(validation), 4) * 100`%**. 
+
+### Predicting with random forest
+
+Lastly, I built a random forest model. Similarly, I also used cross-validation method with 5 folds.
+
+```{r rf}
+RFModel <- train(classe ~ ., data = training_complete[,8:60], method = "rf", 
+                 trControl = trainControl(method = "cv", number = 5), verbose = FALSE)
+print(RFModel)
+
+# predict validation values
+RFPredVal <- predict(RFModel, newdata = validation)
+confusionMatrix(RFPredVal, validation$classe)
+```
+
+The prediction accuracy of this model on the validation data set was **`r round(sum(diag(table(RFPredVal, validation$classe)))/nrow(validation), 4) * 100`%**.
+
+The plot below depicts the top 20 most important variables in the model (scale: 0 - 100):
+
+```{r impt plot}
+plot(varImp(RFModel, scale = TRUE), top = 20)
+```
+
+### Conclusion
+
+Since the random forest model was found to have the highest out of sample predictive accuracy over the classification tree and gradient boosting model, it was used to predict the Class of each observation in the test data set.
+
+```{r predict test, include = FALSE}
+# predict on test values
+RFPredTest <- predict(RFModel, newdata = test)
+```
